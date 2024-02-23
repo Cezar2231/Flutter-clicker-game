@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, library_private_types_in_public_api, use_key_in_widget_constructors, prefer_final_fields
 
 import 'dart:async';
 import 'dart:math';
@@ -14,7 +14,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: ClickerGame(),
-      // theme: new ThemeData(scaffoldBackgroundColor: Color.fromARGB(255, 46, 76, 197)),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -30,7 +29,7 @@ class _ClickerGameState extends State<ClickerGame> {
   GlobalKey _key = GlobalKey();
 
   // Tap upgrade
-  int clickValue = 1000000; // Starting click value
+  int clickValue = 1; // Starting click value
   int upgradeCost = 100; // First tap upgrade cost
   List<String> cpuList = [
     'I3-2120', 'i3-3150', 'i3-4010', 'i5-5040', // Need more CPUs
@@ -109,7 +108,7 @@ class _ClickerGameState extends State<ClickerGame> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white, // Text color
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -124,6 +123,228 @@ class _ClickerGameState extends State<ClickerGame> {
     Timer(Duration(milliseconds: 500), () {
       overlayEntry.remove();
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadGameState();
+    // Initialize the timer in the initState or when the widget is created
+    passiveClickTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+      // Calculate points based on the number of upgrades but only add them once
+      int pointsToAdd = passiveClicks;
+      totalPointsEarned += pointsToAdd;
+
+      setState(() {
+        points += pointsToAdd;
+        saveGameState();
+      });
+    });
+  }
+
+  // Save the game state to SharedPreferences
+  Future<void> saveGameState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('points', points);
+    prefs.setInt('clickValue', clickValue);
+    prefs.setInt('gpuLevel', gpuLevel);
+    prefs.setInt('passiveClickCost', passiveClickCost);
+
+    prefs.setInt('upgradeCost', upgradeCost);
+    prefs.setInt('cpuLevel', cpuLevel);
+    prefs.setInt('passiveClicks', passiveClicks);
+    prefs.setInt('doubleClickPowerCost', doubleClickPowerCost);
+    prefs.setInt('clicksPerBonus', clicksPerBonus);
+    prefs.setInt('lessClicksPerBonusCost', lessClicksPerBonusCost);
+    prefs.setInt('multiplierCost', multiplierCost);
+
+    prefs.setInt('currentDivisionCost', currentDivisionCost);
+    prefs.setString('currentDivision', currentDivision);
+    prefs.setString('currentLogo', currentLogo);
+    // Add other variables you want to save here
+  }
+
+  // Load the game state from SharedPreferences
+  Future<void> loadGameState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      points = prefs.getInt('points') ?? points;
+      clickValue = prefs.getInt('clickValue') ?? clickValue;
+      gpuLevel = prefs.getInt('gpuLevel') ?? gpuLevel;
+      passiveClickCost = prefs.getInt('passiveClickCost') ?? passiveClickCost;
+      upgradeCost = prefs.getInt('upgradeCost') ?? upgradeCost;
+      cpuLevel = prefs.getInt('cpuLevel') ?? cpuLevel;
+      passiveClicks = prefs.getInt('passiveClicks') ?? passiveClicks;
+      doubleClickPowerCost =
+          prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
+      clicksPerBonus = prefs.getInt('clicksPerBonus') ?? clicksPerBonus;
+      lessClicksPerBonusCost =
+          prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
+      multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
+      currentDivisionCost =
+          prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
+      currentDivision = prefs.getString('currentDivision') ?? currentDivision;
+      currentLogo = prefs.getString('currentLogo') ?? currentLogo;
+      // Retrieve and set other variables here
+    });
+  }
+
+  // Reset the game
+  Future<void> resetGameState() async {
+    //SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      points = 0;
+      clickValue = 1;
+      gpuLevel = 0;
+      passiveClickCost = 500;
+      upgradeCost = 100;
+      cpuLevel = 0;
+      passiveClicks = 0;
+      doubleClickPowerCost = 500;
+      clicksPerBonus = 20;
+      lessClicksPerBonusCost = 500;
+      multiplierCost = 500;
+      currentDivisionCost = 10000;
+      currentDivision = "Budget Builder";
+      currentLogo = "images/logo.png";
+    });
+
+    saveGameState();
+  }
+
+  void infoPopUp() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("Upgrade information"),
+            content: Column(
+              children: [
+                Divider(
+                  color: Colors.black,
+                  thickness: 1.0,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/CPU.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text("+1 points per click."),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/GPU.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "+1 passive click.",
+                          ),
+                          Text(
+                            "(Every 3 seconds)",
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/+5.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text("+5 click bonus cap."),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/click.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("-1 click needed for bonus."),
+                          Text("(Max 5 clicks)"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/2x.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(width: 10),
+                      Text("2x clicks for 30 seconds."),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/levelUp.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Upgrades the division"),
+                          Text("(Resets points and upgrades)"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    resetGameState();
+                  },
+                  child: Text('Reset Game State'),
+                ),
+              ],
+            ),
+          );
+        });
   }
 
   void handleClick() {
@@ -189,7 +410,8 @@ class _ClickerGameState extends State<ClickerGame> {
       setState(() {
         points -= upgradeCost;
         clickValue += 1;
-        upgradeCost += (0.5 * upgradeCost).round();;
+        upgradeCost += (0.5 * upgradeCost).round();
+        ;
         // Increases the CPU when upgrade is bought
         cpuLevel = (cpuLevel + 1) % cpuList.length;
         saveGameState();
@@ -213,68 +435,6 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    loadGameState();
-    // Initialize the timer in the initState or when the widget is created
-    passiveClickTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      // Calculate points based on the number of upgrades but only add them once
-      int pointsToAdd = passiveClicks;
-      totalPointsEarned += pointsToAdd;
-
-      setState(() {
-        points += pointsToAdd;
-      });
-    });
-  }
-
-  // Save the game state to SharedPreferences
-  Future<void> saveGameState() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt('points', points);
-    prefs.setInt('clickValue', clickValue);
-    prefs.setInt('gpuLevel', gpuLevel);
-    prefs.setInt('passiveClickCost', passiveClickCost);
-
-    prefs.setInt('upgradeCost', upgradeCost);
-    prefs.setInt('cpuLevel', cpuLevel);
-    prefs.setInt('passiveClicks', passiveClicks);
-    prefs.setInt('doubleClickPowerCost', doubleClickPowerCost);
-    prefs.setInt('clicksPerBonus', clicksPerBonus);
-    prefs.setInt('lessClicksPerBonusCost', lessClicksPerBonusCost );
-    prefs.setInt('multiplierCost', multiplierCost );
-
-    prefs.setInt('currentDivisionCost', currentDivisionCost  );
-    prefs.setString('currentDivision', currentDivision);
-    prefs.setString('currentLogo', currentLogo  );
-    prefs.setInt('multiplierCost', multiplierCost );
-    // Add other variables you want to save here
-  }
-
-  // Load the game state from SharedPreferences
-  Future<void> loadGameState() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      points = prefs.getInt('points') ?? points;
-      clickValue = prefs.getInt('clickValue') ?? clickValue;
-      gpuLevel = prefs.getInt('gpuLevel') ?? gpuLevel;
-      passiveClickCost = prefs.getInt('passiveClickCost') ?? passiveClickCost;    
-      upgradeCost = prefs.getInt('upgradeCost') ?? upgradeCost;
-      cpuLevel = prefs.getInt('cpuLevel') ?? cpuLevel;
-      passiveClicks = prefs.getInt('passiveClicks') ?? passiveClicks;
-      doubleClickPowerCost = prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
-      clicksPerBonus = prefs.getInt('clicksPerBonus') ?? clicksPerBonus;
-      lessClicksPerBonusCost = prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
-      multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
-      currentDivisionCost = prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
-      currentDivision = prefs.getString('currentDivision') ?? currentDivision;
-      currentLogo = prefs.getString('currentLogo') ?? currentLogo;
-      multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
-      // Retrieve and set other variables here
-    });
   }
 
   // Passive upgrade function
@@ -435,7 +595,7 @@ class _ClickerGameState extends State<ClickerGame> {
   }
 
   void resetAll() {
-    // points = 0;
+    points = 0;
     clickValue = 1;
     cpuLevel = 0;
     gpuLevel = 0;
@@ -736,152 +896,6 @@ class _ClickerGameState extends State<ClickerGame> {
     }
   }
 
-  void infoPopUp() {
-    showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Upgrade information"),
-            content: Column(
-              children: [
-                Divider(
-                  color: Colors.black,
-                  thickness: 1.0,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'images/CPU.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                      SizedBox(
-                          width: 10,
-                      ),
-                      Text("+1 points per click."),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'images/GPU.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                      SizedBox(
-                          width:
-                              10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "+1 passive click.",
-                          ),
-                          Text(
-                            "(Every 3 seconds)",
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'images/+5.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                      SizedBox(
-                        width: 10,
-                      ),
-                      Text("+5 click bonus cap."),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'images/click.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                      SizedBox(
-                          width:
-                              10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "-1 click needed for bonus.",
-                          ),
-                          Text(
-                            "(Max 5 clicks)",
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'images/2x.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                      SizedBox(
-                          width:
-                              10),        
-                          Text(
-                            "2x clicks for 30 seconds.",
-                          ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'images/levelUp.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                      SizedBox(
-                          width:
-                              10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Upgrades the division",
-                          ),
-                          Text(
-                            "(Resets points and upgrades)",
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -976,7 +990,6 @@ class _ClickerGameState extends State<ClickerGame> {
               ),
             ),
           ),
-
           Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
