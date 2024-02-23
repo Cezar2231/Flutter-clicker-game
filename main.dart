@@ -32,7 +32,6 @@ class _ClickerGameState extends State<ClickerGame> {
   // Tap upgrade
   int clickValue = 1000000; // Starting click value
   int upgradeCost = 100; // First tap upgrade cost
-  int nextUpgrade = 0; // Next upgrade cost
   List<String> cpuList = [
     'I3-2120', 'i3-3150', 'i3-4010', 'i5-5040', // Need more CPUs
   ];
@@ -190,10 +189,10 @@ class _ClickerGameState extends State<ClickerGame> {
       setState(() {
         points -= upgradeCost;
         clickValue += 1;
-        nextUpgrade = (0.5 * upgradeCost).round();
-        upgradeCost += nextUpgrade;
+        upgradeCost += (0.5 * upgradeCost).round();;
         // Increases the CPU when upgrade is bought
         cpuLevel = (cpuLevel + 1) % cpuList.length;
+        saveGameState();
       });
     } else {
       showDialog(
@@ -219,7 +218,7 @@ class _ClickerGameState extends State<ClickerGame> {
   @override
   void initState() {
     super.initState();
-    //loadGameState();
+    loadGameState();
     // Initialize the timer in the initState or when the widget is created
     passiveClickTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       // Calculate points based on the number of upgrades but only add them once
@@ -239,6 +238,19 @@ class _ClickerGameState extends State<ClickerGame> {
     prefs.setInt('clickValue', clickValue);
     prefs.setInt('gpuLevel', gpuLevel);
     prefs.setInt('passiveClickCost', passiveClickCost);
+
+    prefs.setInt('upgradeCost', upgradeCost);
+    prefs.setInt('cpuLevel', cpuLevel);
+    prefs.setInt('passiveClicks', passiveClicks);
+    prefs.setInt('doubleClickPowerCost', doubleClickPowerCost);
+    prefs.setInt('clicksPerBonus', clicksPerBonus);
+    prefs.setInt('lessClicksPerBonusCost', lessClicksPerBonusCost );
+    prefs.setInt('multiplierCost', multiplierCost );
+
+    prefs.setInt('currentDivisionCost', currentDivisionCost  );
+    prefs.setString('currentDivision', currentDivision);
+    prefs.setString('currentLogo', currentLogo  );
+    prefs.setInt('multiplierCost', multiplierCost );
     // Add other variables you want to save here
   }
 
@@ -249,7 +261,18 @@ class _ClickerGameState extends State<ClickerGame> {
       points = prefs.getInt('points') ?? points;
       clickValue = prefs.getInt('clickValue') ?? clickValue;
       gpuLevel = prefs.getInt('gpuLevel') ?? gpuLevel;
-      passiveClickCost = prefs.getInt('passiveClickCost') ?? passiveClickCost;
+      passiveClickCost = prefs.getInt('passiveClickCost') ?? passiveClickCost;    
+      upgradeCost = prefs.getInt('upgradeCost') ?? upgradeCost;
+      cpuLevel = prefs.getInt('cpuLevel') ?? cpuLevel;
+      passiveClicks = prefs.getInt('passiveClicks') ?? passiveClicks;
+      doubleClickPowerCost = prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
+      clicksPerBonus = prefs.getInt('clicksPerBonus') ?? clicksPerBonus;
+      lessClicksPerBonusCost = prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
+      multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
+      currentDivisionCost = prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
+      currentDivision = prefs.getString('currentDivision') ?? currentDivision;
+      currentLogo = prefs.getString('currentLogo') ?? currentLogo;
+      multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
       // Retrieve and set other variables here
     });
   }
@@ -293,6 +316,7 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= doubleClickPowerCost;
         doubleClickPowerCost = (2.4 * doubleClickPowerCost).round();
         activateDoubleClickPower();
+        saveGameState();
       });
     } else if (doubleClickPowerActive) {
       showDialog(
@@ -362,7 +386,8 @@ class _ClickerGameState extends State<ClickerGame> {
 
   void levelUpDivision() {
     if (currentDivision == 'High end') {
-      // Challenger reached, disable button and change text
+      saveGameState();
+      // Max division reached, disable button and change text
       showDialog(
         context: context,
         builder: (context) {
@@ -385,6 +410,7 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= currentDivisionCost;
         currentDivisionCost *= divisionMultiplier;
         updateCurrentDivision();
+        saveGameState();
       });
     } else {
       showDialog(
@@ -413,7 +439,6 @@ class _ClickerGameState extends State<ClickerGame> {
     clickValue = 1;
     cpuLevel = 0;
     gpuLevel = 0;
-    nextUpgrade = 0;
     passiveClicks = 0;
     comboCount = 0;
     comboMultiplier = 1;
@@ -450,6 +475,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 10;
+      saveGameState();
     } else if (currentDivisionCost <= 90000) {
       currentDivision = 'Casual crafter';
       resetAll();
@@ -479,6 +505,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 30;
+      saveGameState();
     } else if (currentDivisionCost <= 270000) {
       currentDivision = 'Gamer';
       resetAll();
@@ -508,6 +535,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 60;
+      saveGameState();
     } else if (currentDivisionCost <= 810000) {
       currentDivision = 'Professional';
       resetAll();
@@ -537,6 +565,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 100;
+      saveGameState();
     } else if (currentDivisionCost <= 2430000) {
       currentDivision = 'Master';
       resetAll();
@@ -565,6 +594,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 150;
+      saveGameState();
     } else if (currentDivisionCost <= 7290000) {
       currentDivision = 'Elite';
       resetAll();
@@ -593,6 +623,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 250;
+      saveGameState();
     } else {
       currentDivision = 'High end';
       resetAll();
@@ -621,6 +652,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
       clickValue += 500;
+      saveGameState();
     }
   }
 
@@ -631,6 +663,7 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= multiplierCost;
         multiplierCost += (1.2 * multiplierCost).round();
         maxBonusMultiplier += 5;
+        saveGameState();
       });
     } else {
       showDialog(
@@ -679,6 +712,7 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= lessClicksPerBonusCost;
         lessClicksPerBonusCost += (1.2 * lessClicksPerBonusCost).round();
         clicksPerBonus--;
+        saveGameState();
       });
     } else {
       showDialog(
