@@ -1,6 +1,9 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: ClickerGame(),
-      theme: new ThemeData(scaffoldBackgroundColor: Color.fromARGB(255, 46, 76, 197)),
+      // theme: new ThemeData(scaffoldBackgroundColor: Color.fromARGB(255, 46, 76, 197)),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -30,7 +33,6 @@ class _ClickerGameState extends State<ClickerGame> {
   int clickValue = 1000000; // Starting click value
   int upgradeCost = 100; // First tap upgrade cost
   int nextUpgrade = 0; // Next upgrade cost
-  int upgradesBought = 0;
   List<String> cpuList = [
     'I3-2120', 'i3-3150', 'i3-4010', 'i5-5040', // Need more CPUs
   ];
@@ -39,10 +41,15 @@ class _ClickerGameState extends State<ClickerGame> {
   // Passive points upgrade
   int passiveClicks = 0;
   int passiveClickCost = 500;
+  Timer? passiveClickTimer;
+  int totalPointsEarned = 0;
   List<String> gpuList = [
-    'RTX4050', 'RTX2050', 'RTX1050', 'RTX1060', 
+    'RTX4050',
+    'RTX2050',
+    'RTX1050',
+    'RTX1060',
   ];
-  int gpuLevel = 0; 
+  int gpuLevel = 0;
 
   // Double tap powerup
   bool doubleClickPowerActive = false;
@@ -61,9 +68,9 @@ class _ClickerGameState extends State<ClickerGame> {
   // Divisions
   int currentDivisionCost = 10000;
   int divisionMultiplier = 3;
-  String currentDivision = 'Bronze';
+  String currentDivision = 'Budget Builder';
 
-  String currentLogo = "images/home.webp";
+  String currentLogo = "images/logo.png";
 
   void showPointsPopup(int earnedPoints) {
     OverlayEntry overlayEntry;
@@ -74,9 +81,9 @@ class _ClickerGameState extends State<ClickerGame> {
 
     // Generate a random offset within the screen size
     double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
+    //double screenHeight = MediaQuery.of(context).size.height;
     double randomX = Random().nextInt(screenWidth.toInt()).toDouble();
-    double randomY = Random().nextInt(screenHeight.toInt()).toDouble();
+    //double randomY = Random().nextInt(screenHeight.toInt()).toDouble();
 
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -112,7 +119,7 @@ class _ClickerGameState extends State<ClickerGame> {
       ),
     );
 
-    Overlay.of(context)?.insert(overlayEntry);
+    Overlay.of(context).insert(overlayEntry);
 
     // Schedule a timer to remove the overlay after 0.5 seconds
     Timer(Duration(milliseconds: 500), () {
@@ -125,9 +132,11 @@ class _ClickerGameState extends State<ClickerGame> {
       if (doubleClickPowerActive) {
         points += 2 * clickValue * comboMultiplier;
         showPointsPopup(2 * comboMultiplier);
+        saveGameState();
       } else {
         points += clickValue;
         showPointsPopup(1);
+        saveGameState();
       }
 
       comboCount++;
@@ -167,10 +176,11 @@ class _ClickerGameState extends State<ClickerGame> {
     });
   }
 
-  // Dispose the timer when the widget is disposed
   @override
   void dispose() {
     comboTimer?.cancel();
+    passiveClickTimer?.cancel();
+    saveGameState();
     super.dispose();
   }
 
@@ -182,8 +192,6 @@ class _ClickerGameState extends State<ClickerGame> {
         clickValue += 1;
         nextUpgrade = (0.5 * upgradeCost).round();
         upgradeCost += nextUpgrade;
-        upgradesBought += 1;
-
         // Increases the CPU when upgrade is bought
         cpuLevel = (cpuLevel + 1) % cpuList.length;
       });
@@ -208,6 +216,44 @@ class _ClickerGameState extends State<ClickerGame> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    //loadGameState();
+    // Initialize the timer in the initState or when the widget is created
+    passiveClickTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+      // Calculate points based on the number of upgrades but only add them once
+      int pointsToAdd = passiveClicks;
+      totalPointsEarned += pointsToAdd;
+
+      setState(() {
+        points += pointsToAdd;
+      });
+    });
+  }
+
+  // Save the game state to SharedPreferences
+  Future<void> saveGameState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('points', points);
+    prefs.setInt('clickValue', clickValue);
+    prefs.setInt('gpuLevel', gpuLevel);
+    prefs.setInt('passiveClickCost', passiveClickCost);
+    // Add other variables you want to save here
+  }
+
+  // Load the game state from SharedPreferences
+  Future<void> loadGameState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      points = prefs.getInt('points') ?? points;
+      clickValue = prefs.getInt('clickValue') ?? clickValue;
+      gpuLevel = prefs.getInt('gpuLevel') ?? gpuLevel;
+      passiveClickCost = prefs.getInt('passiveClickCost') ?? passiveClickCost;
+      // Retrieve and set other variables here
+    });
+  }
+
   // Passive upgrade function
   void buyPassiveClick() {
     if (points >= passiveClickCost) {
@@ -216,12 +262,7 @@ class _ClickerGameState extends State<ClickerGame> {
         passiveClicks += 1;
         passiveClickCost += (0.6 * passiveClickCost).round();
         gpuLevel = (gpuLevel + 1) % gpuList.length;
-      });
-      // Timer for passive clicks
-      Timer.periodic(Duration(seconds: 3), (timer) {
-        setState(() {
-          points += passiveClicks;
-        });
+        saveGameState();
       });
     } else {
       showDialog(
@@ -320,14 +361,14 @@ class _ClickerGameState extends State<ClickerGame> {
   }
 
   void levelUpDivision() {
-    if (currentDivision == 'Challenger') {
+    if (currentDivision == 'High end') {
       // Challenger reached, disable button and change text
       showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
             title: Text("Max Division Reached"),
-            content: Text("You have reached the maximum division: Challenger."),
+            content: Text("You have reached the High end."),
             actions: [
               TextButton(
                 onPressed: () {
@@ -367,9 +408,29 @@ class _ClickerGameState extends State<ClickerGame> {
     }
   }
 
+  void resetAll() {
+    // points = 0;
+    clickValue = 1;
+    cpuLevel = 0;
+    gpuLevel = 0;
+    nextUpgrade = 0;
+    passiveClicks = 0;
+    comboCount = 0;
+    comboMultiplier = 1;
+    clicksPerBonus = 20;
+  }
+
   void updateCurrentDivision() {
     if (currentDivisionCost <= 30000) {
-      currentDivision = 'Silver';
+      currentDivision = 'Hobby builder';
+      resetAll();
+      upgradeCost = 150;
+      passiveClickCost = 550;
+      doubleClickPowerCost = 550;
+      lessClicksPerBonusCost = 550;
+      multiplierCost = 550;
+      cpuLevel = (cpuLevel + 2) % cpuList.length;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -390,7 +451,15 @@ class _ClickerGameState extends State<ClickerGame> {
       );
       clickValue += 10;
     } else if (currentDivisionCost <= 90000) {
-      currentDivision = 'Gold';
+      currentDivision = 'Casual crafter';
+      resetAll();
+      upgradeCost = 200;
+      passiveClickCost = 600;
+      doubleClickPowerCost = 600;
+      lessClicksPerBonusCost = 600;
+      multiplierCost = 600;
+      cpuLevel = (cpuLevel + 2) % cpuList.length;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -411,7 +480,15 @@ class _ClickerGameState extends State<ClickerGame> {
       );
       clickValue += 30;
     } else if (currentDivisionCost <= 270000) {
-      currentDivision = 'Platinum';
+      currentDivision = 'Gamer';
+      resetAll();
+      upgradeCost = 250;
+      passiveClickCost = 650;
+      doubleClickPowerCost = 650;
+      lessClicksPerBonusCost = 650;
+      multiplierCost = 650;
+      cpuLevel = (cpuLevel + 3) % cpuList.length;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -432,7 +509,15 @@ class _ClickerGameState extends State<ClickerGame> {
       );
       clickValue += 60;
     } else if (currentDivisionCost <= 810000) {
-      currentDivision = 'Diamond';
+      currentDivision = 'Professional';
+      resetAll();
+      upgradeCost = 300;
+      passiveClickCost = 700;
+      doubleClickPowerCost = 700;
+      lessClicksPerBonusCost = 700;
+      multiplierCost = 700;
+      cpuLevel = (cpuLevel + 3) % cpuList.length;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -454,6 +539,13 @@ class _ClickerGameState extends State<ClickerGame> {
       clickValue += 100;
     } else if (currentDivisionCost <= 2430000) {
       currentDivision = 'Master';
+      resetAll();
+      upgradeCost = 350;
+      passiveClickCost = 750;
+      doubleClickPowerCost = 750;
+      lessClicksPerBonusCost = 750;
+      multiplierCost = 750;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -474,7 +566,14 @@ class _ClickerGameState extends State<ClickerGame> {
       );
       clickValue += 150;
     } else if (currentDivisionCost <= 7290000) {
-      currentDivision = 'Grandmaster';
+      currentDivision = 'Elite';
+      resetAll();
+      upgradeCost = 400;
+      passiveClickCost = 800;
+      doubleClickPowerCost = 800;
+      lessClicksPerBonusCost = 800;
+      multiplierCost = 800;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -495,7 +594,14 @@ class _ClickerGameState extends State<ClickerGame> {
       );
       clickValue += 250;
     } else {
-      currentDivision = 'Challenger';
+      currentDivision = 'High end';
+      resetAll();
+      upgradeCost = 500;
+      passiveClickCost = 1000;
+      doubleClickPowerCost = 1000;
+      lessClicksPerBonusCost = 1000;
+      multiplierCost = 1000;
+      // currentLogo = "";
       showDialog(
         context: context,
         builder: (context) {
@@ -548,7 +654,7 @@ class _ClickerGameState extends State<ClickerGame> {
     }
   }
 
-  // Less needed clicks for bonus points
+  // Less clicks needed for bonus points
   void buyLessClicksForBonus() {
     if (clicksPerBonus == 5) {
       showDialog(
@@ -596,114 +702,432 @@ class _ClickerGameState extends State<ClickerGame> {
     }
   }
 
+  void infoPopUp() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("Upgrade information"),
+            content: Column(
+              children: [
+                Divider(
+                  color: Colors.black,
+                  thickness: 1.0,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/CPU.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                          width: 10,
+                      ),
+                      Text("+1 points per click."),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/GPU.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                          width:
+                              10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "+1 passive click.",
+                          ),
+                          Text(
+                            "(Every 3 seconds)",
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/+5.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text("+5 click bonus cap."),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/click.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                          width:
+                              10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "-1 click needed for bonus.",
+                          ),
+                          Text(
+                            "(Max 5 clicks)",
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/2x.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                          width:
+                              10),        
+                          Text(
+                            "2x clicks for 30 seconds.",
+                          ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'images/levelUp.png',
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(
+                          width:
+                              10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Upgrades the division",
+                          ),
+                          Text(
+                            "(Resets points and upgrades)",
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.amber,
-        title: Center(child: Text('Clicker Game')),
+        backgroundColor: Colors.blueAccent,
+        title: Center(
+            child: Text('PC Builder clicker',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ))),
       ),
-      body:Stack(
-      children: [
-        // Background Image
-        Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('images/background2.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ), Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Current division: $currentDivision',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          // Background Image
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('images/background2.png'),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(left: 15.0),
-            child: Text('CPU: ${cpuList[cpuLevel]}', style: TextStyle(fontSize: 18, color: Colors.white)),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 15.0),
-            child: Text('GPU: ${gpuList[gpuLevel]}', style: TextStyle(fontSize: 18, color: Colors.white)),
+          Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: infoPopUp,
+                child: Icon(
+                  Icons.info,
+                  size: 30,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
 
-          // Centered elements
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  key: _key,
-                  onTap: handleClick,
-                  child: Container( 
-                    width: 250,
-                    height: 250,
-                    margin: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('$currentLogo'),
-                        fit: BoxFit.cover,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 15),
+              child: GestureDetector(
+                onTap: handleDoubleClickPowerClick,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'images/2x.png',
+                      height: 80,
+                      width: 80,
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      'Cost: $doubleClickPowerCost',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Right
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 15),
+              child: GestureDetector(
+                onTap: currentDivision == 'High end' ? null : levelUpDivision,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset('images/levelUp.png', height: 80, width: 80),
+                    SizedBox(height: 8.0),
+                    Text(
+                      currentDivision == 'High end'
+                          ? 'Maxed'
+                          : 'Cost: $currentDivisionCost',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'Current division: $currentDivision',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 15.0),
+                child: Text(
+                  'CPU: ${cpuList[cpuLevel]}',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 15.0),
+                child: Text(
+                  'GPU: ${gpuList[gpuLevel]}',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ),
+              // Centered elements
+              Align(
+                alignment: Alignment.center,
+                child: Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        key: _key,
+                        onTap: handleClick,
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          margin: EdgeInsets.only(top: 55, bottom: 20),
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage('$currentLogo'),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Text(
                         '+$clickValue',
                         style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
+                      Text(
+                        'Points: $points',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Bottom
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                GestureDetector(
+                  onTap: buyUpgrade,
+                  child: Container(
+                    padding: EdgeInsets.only(left: 5.0, right: 5.0, bottom: 80),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'images/CPU.png',
+                          height: 80,
+                          width: 80,
+                        ),
+                        SizedBox(height: 8.0),
+                        Text(
+                          'Cost: $upgradeCost',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Text('Points: $points', style: TextStyle(fontSize: 18, color: Colors.white)),
-                ElevatedButton(
-                  onPressed: buyUpgrade,
-                  child: Text('Buy Upgrade (Cost: $upgradeCost points)'),
-                ),
-                ElevatedButton(
-                  onPressed: buyPassiveClick,
-                  child: Text(
-                      'Buy Passive Click (Cost: $passiveClickCost points)'),
-                ),
-                ElevatedButton(
-                  onPressed: handleDoubleClickPowerClick,
-                  child: Text(doubleClickPowerActive
-                      ? 'Double Click Power Active'
-                      : 'Activate Double Click Power (Cost: $doubleClickPowerCost points)'),
-                ),
-                ElevatedButton(
-                  onPressed:
-                      currentDivision == 'Challenger' ? null : levelUpDivision,
-                  child: Text(
-                    currentDivision == 'Challenger'
-                        ? 'Max Division Reached'
-                        : 'Level Up Division (Cost: $currentDivisionCost points)',
+                GestureDetector(
+                  onTap: buyPassiveClick,
+                  child: Container(
+                    padding: EdgeInsets.only(left: 5.0, right: 5.0, bottom: 80),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'images/GPU.png',
+                          height: 80,
+                          width: 80,
+                        ),
+                        SizedBox(height: 8.0),
+                        Text(
+                          'Cost: $passiveClickCost',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: buyMultiplier,
-                  child: Text(
-                      'Buy More Multiplier (Cost: $multiplierCost points)'),
+                GestureDetector(
+                  onTap: buyMultiplier,
+                  child: Container(
+                    padding: EdgeInsets.only(left: 5.0, right: 5.0, bottom: 80),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'images/+5.png',
+                          height: 80,
+                          width: 80,
+                        ),
+                        SizedBox(height: 8.0),
+                        Text(
+                          'Cost: $multiplierCost',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed:
-                      clicksPerBonus == 5 ? null : buyLessClicksForBonus,
-                  child: Text(
-                    clicksPerBonus == 5
-                      ? 'Max multiplier reached'
-                      : 'Buy Less Clicks per bonus (Cost: $lessClicksPerBonusCost points)'),
+                GestureDetector(
+                  onTap: clicksPerBonus == 5 ? null : buyLessClicksForBonus,
+                  child: Container(
+                    padding: EdgeInsets.only(left: 5.0, right: 5.0, bottom: 80),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'images/click.png',
+                          height: 80,
+                          width: 80,
+                        ),
+                        SizedBox(height: 8.0),
+                        Text(
+                          clicksPerBonus == 5
+                              ? 'Maxed'
+                              : 'Cost: $lessClicksPerBonusCost',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
         ],
       ),
-  ],),);
+    );
   }
 }
