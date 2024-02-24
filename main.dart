@@ -25,8 +25,10 @@ class ClickerGame extends StatefulWidget {
 }
 
 class _ClickerGameState extends State<ClickerGame> {
-  int points = 0; // Starting points
+
   GlobalKey _key = GlobalKey();
+
+  int points = 0; // Starting points
 
   // Tap upgrade
   int clickValue = 1; // Starting click value
@@ -62,6 +64,7 @@ class _ClickerGameState extends State<ClickerGame> {
   int multiplierCost = 500;
   int maxBonusMultiplier = 5;
   Timer? comboTimer;
+  int comboPopUpDuration = 1000;
 
   // Divisions
   int currentDivisionCost = 10000;
@@ -175,14 +178,11 @@ class _ClickerGameState extends State<ClickerGame> {
       upgradeCost = prefs.getInt('upgradeCost') ?? upgradeCost;
       cpuLevel = prefs.getInt('cpuLevel') ?? cpuLevel;
       passiveClicks = prefs.getInt('passiveClicks') ?? passiveClicks;
-      doubleClickPowerCost =
-          prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
+      doubleClickPowerCost = prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
       clicksPerBonus = prefs.getInt('clicksPerBonus') ?? clicksPerBonus;
-      lessClicksPerBonusCost =
-          prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
+      lessClicksPerBonusCost = prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
       multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
-      currentDivisionCost =
-          prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
+      currentDivisionCost = prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
       currentDivision = prefs.getString('currentDivision') ?? currentDivision;
       currentLogo = prefs.getString('currentLogo') ?? currentLogo;
       // Retrieve and set other variables here
@@ -335,12 +335,13 @@ class _ClickerGameState extends State<ClickerGame> {
                     ],
                   ),
                 ),
-                ElevatedButton(
+                // Buton in info box to restart the progress
+                /*ElevatedButton(
                   onPressed: () {
                     resetGameState();
                   },
                   child: Text('Reset Game State'),
-                ),
+                ),*/
               ],
             ),
           );
@@ -535,7 +536,7 @@ class _ClickerGameState extends State<ClickerGame> {
       SnackBar(
         content: Text(
             "Combo Bonus! You've achieved a combo streak! Bonus Points: $bonusPoints"),
-        duration: Duration(seconds: 1), // Pop up duration
+        duration: Duration(milliseconds: comboPopUpDuration), // Pop up duration
       ),
     );
   }
@@ -849,30 +850,13 @@ class _ClickerGameState extends State<ClickerGame> {
 
   // Less clicks needed for bonus points
   void buyLessClicksForBonus() {
-    if (clicksPerBonus == 5) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Max Upgrade Reached"),
-            content: Text("You have reached 5 clicks for bonus!"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-    } else if (points >= lessClicksPerBonusCost) {
+    if (points >= lessClicksPerBonusCost) {
       setState(() {
         points -= lessClicksPerBonusCost;
         lessClicksPerBonusCost += (1.2 * lessClicksPerBonusCost).round();
         clicksPerBonus--;
         saveGameState();
+        comboPopUpDuration -= 50;
       });
     } else {
       showDialog(
