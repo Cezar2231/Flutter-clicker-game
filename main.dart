@@ -412,9 +412,11 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= upgradeCost;
         clickValue += 1;
         upgradeCost += (0.5 * upgradeCost).round();
-        ;
+
         // Increases the CPU when upgrade is bought
-        cpuLevel = (cpuLevel + 1) % cpuList.length;
+        if (cpuLevel < cpuList.length - 1) {
+          cpuLevel = (cpuLevel + 1) % cpuList.length;
+        }
         saveGameState();
       });
     } else {
@@ -445,7 +447,10 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= passiveClickCost;
         passiveClicks += 1;
         passiveClickCost += (0.6 * passiveClickCost).round();
-        gpuLevel = (gpuLevel + 1) % gpuList.length;
+
+        if (gpuLevel < gpuList.length - 1) {
+          gpuLevel = (gpuLevel + 1) % gpuList.length;
+        }
         saveGameState();
       });
     } else {
