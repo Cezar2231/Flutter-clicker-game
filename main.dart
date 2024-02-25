@@ -57,6 +57,7 @@ class _ClickerGameState extends State<ClickerGame> {
   Timer? doubleClickPowerTimer;
 
   // Combo multiplier
+  bool combo = false;
   int comboCount = 0;
   int comboMultiplier = 1;
   int clicksPerBonus = 20;
@@ -128,6 +129,7 @@ class _ClickerGameState extends State<ClickerGame> {
     });
   }
 
+
   @override
   void initState() {
     super.initState();
@@ -194,7 +196,7 @@ class _ClickerGameState extends State<ClickerGame> {
     //SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
-      points = 0;
+      points = 1000000;
       clickValue = 1;
       gpuLevel = 0;
       passiveClickCost = 500;
@@ -203,6 +205,7 @@ class _ClickerGameState extends State<ClickerGame> {
       passiveClicks = 0;
       doubleClickPowerCost = 500;
       clicksPerBonus = 20;
+      combo = false;
       lessClicksPerBonusCost = 500;
       multiplierCost = 500;
       currentDivisionCost = 10000;
@@ -277,7 +280,7 @@ class _ClickerGameState extends State<ClickerGame> {
                       SizedBox(
                         width: 10,
                       ),
-                      Text("+5 click bonus cap."),
+                      Text("+5 bonus cap."),
                     ],
                   ),
                 ),
@@ -336,12 +339,12 @@ class _ClickerGameState extends State<ClickerGame> {
                   ),
                 ),
                 // Buton in info box to restart the progress
-                /*ElevatedButton(
+                ElevatedButton(
                   onPressed: () {
                     resetGameState();
                   },
                   child: Text('Reset Game State'),
-                ),*/
+                ),
               ],
             ),
           );
@@ -350,7 +353,13 @@ class _ClickerGameState extends State<ClickerGame> {
 
   void handleClick() {
     setState(() {
-      if (doubleClickPowerActive) {
+      if ( doubleClickPowerActive && combo == false){
+        points += 2 * clickValue;
+        showPointsPopup(2);
+        saveGameState();
+
+      }
+      else if (doubleClickPowerActive && combo != false) {
         points += 2 * clickValue * comboMultiplier;
         showPointsPopup(2 * comboMultiplier);
         saveGameState();
@@ -363,7 +372,7 @@ class _ClickerGameState extends State<ClickerGame> {
       comboCount++;
 
       // Combo streak
-      if (comboCount >= clicksPerBonus) {
+      if (comboCount >= clicksPerBonus && combo != false) {
         int bonusPoints = 1;
 
         if (comboMultiplier <= maxBonusMultiplier) {
@@ -824,7 +833,29 @@ class _ClickerGameState extends State<ClickerGame> {
 
   // More multiplier cap bonus
   void buyMultiplier() {
-    if (points >= multiplierCost) {
+    if (points >= multiplierCost && combo == false) {
+      points -= multiplierCost;
+      combo = true;
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("Combo unlocked!"),
+            content: Text(
+                "Every 20 clicks will give you bonus points, every other upgrades gives you +5 more bonus cap!"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
+    }
+    else if (points >= multiplierCost && combo == true) {
       setState(() {
         points -= multiplierCost;
         multiplierCost += (1.2 * multiplierCost).round();
