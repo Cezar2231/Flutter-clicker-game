@@ -25,7 +25,6 @@ class ClickerGame extends StatefulWidget {
 }
 
 class _ClickerGameState extends State<ClickerGame> {
-
   GlobalKey _key = GlobalKey();
 
   int points = 0; // Starting points
@@ -129,7 +128,6 @@ class _ClickerGameState extends State<ClickerGame> {
     });
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -180,11 +178,14 @@ class _ClickerGameState extends State<ClickerGame> {
       upgradeCost = prefs.getInt('upgradeCost') ?? upgradeCost;
       cpuLevel = prefs.getInt('cpuLevel') ?? cpuLevel;
       passiveClicks = prefs.getInt('passiveClicks') ?? passiveClicks;
-      doubleClickPowerCost = prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
+      doubleClickPowerCost =
+          prefs.getInt('doubleClickPowerCost') ?? doubleClickPowerCost;
       clicksPerBonus = prefs.getInt('clicksPerBonus') ?? clicksPerBonus;
-      lessClicksPerBonusCost = prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
+      lessClicksPerBonusCost =
+          prefs.getInt('lessClicksPerBonusCost') ?? lessClicksPerBonusCost;
       multiplierCost = prefs.getInt('multiplierCost') ?? multiplierCost;
-      currentDivisionCost = prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
+      currentDivisionCost =
+          prefs.getInt('currentDivisionCost') ?? currentDivisionCost;
       currentDivision = prefs.getString('currentDivision') ?? currentDivision;
       currentLogo = prefs.getString('currentLogo') ?? currentLogo;
       // Retrieve and set other variables here
@@ -193,8 +194,6 @@ class _ClickerGameState extends State<ClickerGame> {
 
   // Reset the game
   Future<void> resetGameState() async {
-    //SharedPreferences prefs = await SharedPreferences.getInstance();
-
     setState(() {
       points = 1000000;
       clickValue = 1;
@@ -214,6 +213,47 @@ class _ClickerGameState extends State<ClickerGame> {
     });
 
     saveGameState();
+  }
+
+  void showNotEnoughPointsDialog(int requiredPoints) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Not enough points"),
+          content: Text("You need $requiredPoints points to buy the upgrade."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showUpgradeDivision(String division, int points){
+   showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("Congrats!"),
+            content: Text(
+                "You got promoted to $division and have +$points bonus click points"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
   }
 
   void infoPopUp() {
@@ -280,7 +320,13 @@ class _ClickerGameState extends State<ClickerGame> {
                       SizedBox(
                         width: 10,
                       ),
-                      Text("+5 bonus cap."),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Unlockes combo bonus."),
+                          Text("+5 Bonus cap")
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -353,13 +399,11 @@ class _ClickerGameState extends State<ClickerGame> {
 
   void handleClick() {
     setState(() {
-      if ( doubleClickPowerActive && combo == false){
+      if (doubleClickPowerActive && combo == false) {
         points += 2 * clickValue;
         showPointsPopup(2);
         saveGameState();
-
-      }
-      else if (doubleClickPowerActive && combo != false) {
+      } else if (doubleClickPowerActive && combo != false) {
         points += 2 * clickValue * comboMultiplier;
         showPointsPopup(2 * comboMultiplier);
         saveGameState();
@@ -429,23 +473,7 @@ class _ClickerGameState extends State<ClickerGame> {
         saveGameState();
       });
     } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Not enough points"),
-            content: Text("You need $upgradeCost points to buy the upgrade."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
+      showNotEnoughPointsDialog(upgradeCost);
     }
   }
 
@@ -463,24 +491,7 @@ class _ClickerGameState extends State<ClickerGame> {
         saveGameState();
       });
     } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Not enough points"),
-            content: Text(
-                "You need $passiveClickCost points to buy passive clicks."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
+      showNotEnoughPointsDialog(passiveClickCost);
     }
   }
 
@@ -512,24 +523,7 @@ class _ClickerGameState extends State<ClickerGame> {
         },
       );
     } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Not enough points"),
-            content: Text(
-                "You need $doubleClickPowerCost points to activate Double Click Power."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
+      showNotEnoughPointsDialog(doubleClickPowerCost);
     }
   }
 
@@ -588,24 +582,7 @@ class _ClickerGameState extends State<ClickerGame> {
         saveGameState();
       });
     } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Not enough points"),
-            content: Text(
-                "You need $currentDivisionCost points to level up to the next division."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
+      showNotEnoughPointsDialog(currentDivisionCost);
     }
   }
 
@@ -622,183 +599,81 @@ class _ClickerGameState extends State<ClickerGame> {
 
   void updateCurrentDivision() {
     if (currentDivisionCost <= 30000) {
-      currentDivision = 'Hobby builder';
-      resetAll();
-      upgradeCost = 150;
-      passiveClickCost = 550;
-      doubleClickPowerCost = 550;
-      lessClicksPerBonusCost = 550;
-      multiplierCost = 550;
-      cpuLevel = (cpuLevel + 2) % cpuList.length;
-      // currentLogo = "";
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Congrats!"),
-            content: Text(
-                "You got promoted to $currentDivision and have +10 bonus click points"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-      clickValue += 10;
-      saveGameState();
+        currentDivision = 'Hobby builder';
+        resetAll();
+        upgradeCost = 150;
+        passiveClickCost = 550;
+        doubleClickPowerCost = 550;
+        lessClicksPerBonusCost = 550;
+        multiplierCost = 550;
+        cpuLevel = (cpuLevel + 2) % cpuList.length;
+        // currentLogo = "";
+        showUpgradeDivision(currentDivision,10);
+        clickValue += 10;
+        saveGameState();
     } else if (currentDivisionCost <= 90000) {
-      currentDivision = 'Casual crafter';
-      resetAll();
-      upgradeCost = 200;
-      passiveClickCost = 600;
-      doubleClickPowerCost = 600;
-      lessClicksPerBonusCost = 600;
-      multiplierCost = 600;
-      cpuLevel = (cpuLevel + 2) % cpuList.length;
-      // currentLogo = "";
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Congrats!"),
-            content: Text(
-                "You got promoted to $currentDivision and have +30 bonus click points"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-      clickValue += 30;
-      saveGameState();
+        currentDivision = 'Casual crafter';
+        resetAll();
+        upgradeCost = 200;
+        passiveClickCost = 600;
+        doubleClickPowerCost = 600;
+        lessClicksPerBonusCost = 600;
+        multiplierCost = 600;
+        cpuLevel = (cpuLevel + 2) % cpuList.length;
+        // currentLogo = "";
+        showUpgradeDivision(currentDivision,30);
+        clickValue += 30;
+        saveGameState();
     } else if (currentDivisionCost <= 270000) {
-      currentDivision = 'Gamer';
-      resetAll();
-      upgradeCost = 250;
-      passiveClickCost = 650;
-      doubleClickPowerCost = 650;
-      lessClicksPerBonusCost = 650;
-      multiplierCost = 650;
-      cpuLevel = (cpuLevel + 3) % cpuList.length;
-      // currentLogo = "";
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Congrats!"),
-            content: Text(
-                "You got promoted to $currentDivision and have +60 bonus click points"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-      clickValue += 60;
-      saveGameState();
+        currentDivision = 'Gamer';
+        resetAll();
+        upgradeCost = 250;
+        passiveClickCost = 650;
+        doubleClickPowerCost = 650;
+        lessClicksPerBonusCost = 650;
+        multiplierCost = 650;
+        cpuLevel = (cpuLevel + 3) % cpuList.length;
+        // currentLogo = "";
+        showUpgradeDivision(currentDivision,60);
+        clickValue += 60;
+        saveGameState();
     } else if (currentDivisionCost <= 810000) {
-      currentDivision = 'Professional';
-      resetAll();
-      upgradeCost = 300;
-      passiveClickCost = 700;
-      doubleClickPowerCost = 700;
-      lessClicksPerBonusCost = 700;
-      multiplierCost = 700;
-      cpuLevel = (cpuLevel + 3) % cpuList.length;
-      // currentLogo = "";
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Congrats!"),
-            content: Text(
-                "You got promoted to $currentDivision and have +100 bonus click points"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-      clickValue += 100;
-      saveGameState();
+        currentDivision = 'Professional';
+        resetAll();
+        upgradeCost = 300;
+        passiveClickCost = 700;
+        doubleClickPowerCost = 700;
+        lessClicksPerBonusCost = 700;
+        multiplierCost = 700;
+        cpuLevel = (cpuLevel + 3) % cpuList.length;
+        // currentLogo = "";
+        showUpgradeDivision(currentDivision,100);
+        clickValue += 100;
+        saveGameState();
     } else if (currentDivisionCost <= 2430000) {
-      currentDivision = 'Master';
-      resetAll();
-      upgradeCost = 350;
-      passiveClickCost = 750;
-      doubleClickPowerCost = 750;
-      lessClicksPerBonusCost = 750;
-      multiplierCost = 750;
-      // currentLogo = "";
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Congrats!"),
-            content: Text(
-                "You got promoted to $currentDivision and have +150 bonus click points"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-      clickValue += 150;
-      saveGameState();
+        currentDivision = 'Master';
+        resetAll();
+        upgradeCost = 350;
+        passiveClickCost = 750;
+        doubleClickPowerCost = 750;
+        lessClicksPerBonusCost = 750;
+        multiplierCost = 750;
+        // currentLogo = "";
+        showUpgradeDivision(currentDivision,150);
+        clickValue += 150;
+        saveGameState();
     } else if (currentDivisionCost <= 7290000) {
-      currentDivision = 'Elite';
-      resetAll();
-      upgradeCost = 400;
-      passiveClickCost = 800;
-      doubleClickPowerCost = 800;
-      lessClicksPerBonusCost = 800;
-      multiplierCost = 800;
-      // currentLogo = "";
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Congrats!"),
-            content: Text(
-                "You got promoted to $currentDivision and have +250 bonus click points"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
-      clickValue += 250;
-      saveGameState();
+        currentDivision = 'Elite';
+        resetAll();
+        upgradeCost = 400;
+        passiveClickCost = 800;
+        doubleClickPowerCost = 800;
+        lessClicksPerBonusCost = 800;
+        multiplierCost = 800;
+        // currentLogo = "";
+        showUpgradeDivision(currentDivision,250);
+        clickValue += 250;
+        saveGameState();
     } else {
       currentDivision = 'High end';
       resetAll();
@@ -854,8 +729,7 @@ class _ClickerGameState extends State<ClickerGame> {
           );
         },
       );
-    }
-    else if (points >= multiplierCost && combo == true) {
+    } else if (points >= multiplierCost && combo == true) {
       setState(() {
         points -= multiplierCost;
         multiplierCost += (1.2 * multiplierCost).round();
@@ -863,24 +737,7 @@ class _ClickerGameState extends State<ClickerGame> {
         saveGameState();
       });
     } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Not enough points"),
-            content:
-                Text("You need $multiplierCost points to buy the upgrade."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
+      showNotEnoughPointsDialog(multiplierCost);
     }
   }
 
@@ -891,28 +748,11 @@ class _ClickerGameState extends State<ClickerGame> {
         points -= lessClicksPerBonusCost;
         lessClicksPerBonusCost += (1.2 * lessClicksPerBonusCost).round();
         clicksPerBonus--;
-        saveGameState();
         comboPopUpDuration -= 50;
+        saveGameState();
       });
     } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Not enough points"),
-            content: Text(
-                "You need $lessClicksPerBonusCost points to buy the upgrade."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          );
-        },
-      );
+      showNotEnoughPointsDialog(lessClicksPerBonusCost);
     }
   }
 
